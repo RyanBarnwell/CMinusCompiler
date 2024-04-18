@@ -1,8 +1,6 @@
 // cminus.jacc - parser for C-Minus programming language.
-// Author: Your Name
-// Date: the date
-
-//Hello Ryan
+// Author: Ryan Barnwell, William Purcell
+// Date: 4/18/24
 
 %{
 import java.io.*;
