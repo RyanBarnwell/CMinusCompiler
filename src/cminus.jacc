@@ -1,7 +1,6 @@
 // cminus.jacc - parser for C-Minus programming language.
-// Author: Your Name
-// Date: the date
-
+// Author: Ryan Barnwell, William Purcell
+// Date: 4/18/2024
 
 %{
 import java.io.*;
@@ -553,7 +552,7 @@ expression:	additive_expression relop additive_expression
 		|	additive_expression
 	;
 
-relop:  LTE | LT | GT | GTE | EQ | NOTEQ
+relop:  LTE {$$ = $1;} | LT {$$=$1;} | GT {$$=$1;} | GTE {$$=$1;} | EQ {$$=$1;} | NOTEQ {$$=$1;}
 	;
 
 additive_expression: additive_expression addop term
@@ -563,7 +562,7 @@ additive_expression: additive_expression addop term
 		|	term
 	;
 
-addop:	ADDOP | SUBOP
+addop:	ADDOP {$$=$1;} | SUBOP {$$=$1;}
 	;
 
 term:	term mulop factor 
@@ -573,7 +572,7 @@ term:	term mulop factor
 		| factor
 	;
 
-mulop:	MULOP | DIVOP
+mulop:	MULOP {$$=$1;} | DIVOP {$$=$1;}
 	;
 
 factor:		LPAREN expression RPAREN 
@@ -686,9 +685,6 @@ arg_list:  arg_list COMMA expression
 		| expression
 	;
 
-///////////// JUST SO THE PARSER WILL BUILD, GET RID OF THESE!
-// I removed stuff here
-//////////////////////////////////////////////////////////////
 
 %%
 
