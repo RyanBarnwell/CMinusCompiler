@@ -1,6 +1,6 @@
 /* cminus.flex - scanner for C-Minus programming language. */
-/* Author: Ryan Barnwell, William Purcell */
-/* Date: 4/18/24 */
+/* Author: Your Name */
+/* Date: the date */
 
 %%
 
@@ -62,6 +62,10 @@ multicomment ="/*"((\*+[^/*])|([^*]))*\**"*/"
 "if"				{ return IF; }
 "int"				{ yyparser.yylval = new ParserVal(INT); return INT; }
 "void"				{ yyparser.yylval = new ParserVal(VOID); return VOID; }
+"return"			{ return RETURN; }
+"while"				{ return WHILE; }
+"print"				{ return PRINT; }
+"input"				{ return INPUT;}
 
 "<="				{ yyparser.yylval = new ParserVal(LTE); return LTE; }
 "<"					{ yyparser.yylval = new ParserVal(LT); return LT; }
