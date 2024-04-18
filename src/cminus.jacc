@@ -2,7 +2,6 @@
 // Author: Your Name
 // Date: the date
 
-//Hello Ryan
 
 %{
 import java.io.*;
@@ -20,13 +19,14 @@ import java.util.*;
 // Constants for all recognized tokens
 %token INPUT PRINT RETURN WHILE IF ELSE VOID INT
 %token IDENTIFIER NUMBER
-%token LTE LT GT GTE EQ NOTEQ ADDOP SUBOP MULOP DIVOP ASSIGN COMMA SEMI
+%token LT GT LTE GTE EQ NOTEQ 
+%token ADDOP SUBOP MULOP DIVOP ASSIGN COMMA SEMI
 %token LPAREN RPAREN LBRACK RBRACK LBRACE RBRACE
 %token UNKNOWN
 /* ENDINPUT generated automatically by jacc */
 
 // Left associative tokens
-%left ADDOP LTE 
+%left ADDOP SUBOP MULOP DIVOP LT GT LTE GTE EQ NOTEQ IF
 
 // Right associative tokens
 %right ASSIGN ELSE
@@ -41,6 +41,10 @@ program: program_start declaration_list
 			// SYMTAB exit scope
 			symtab.exitScope();
 			// SEMANTIC if no main function, report semantic error 
+			if(!seenMain)
+			{
+				semerror("No main defined in program");
+			}
 		}
 	;
 	
@@ -268,13 +272,29 @@ assign_stmt: var_assign_stmt
 var_assign_stmt: IDENTIFIER ASSIGN expression SEMI
 		{
 			// SYMTAB get identifier name from item 1 in grammar rule
+			String name= $1.sval;
 			
 			// SYMTAB get the record from the symbol table
+			SymTabRec rec=symtab.get(name);
+			
 			// SYMTAB if not found (null), semantic error, undeclared
+			if (rec ==null)
+			{
+				semerror("Undeclared name" + name + "in current scope");
+			}
 			
 			// SYMTAB else if it isn't a regular variable, semantic error
+			else if(!rec.isVar())
+			{
+				semerror("Name " +name+ "is not a variable in current scope");
+			}
+			
 			
 			// CODEGEN else ok, generate store
+			else
+			{
+			
+			}
 		}
 	;
 
@@ -287,11 +307,26 @@ arr_assign_stmt: arr_assign_stmt_name LBRACK expression RBRACK ASSIGN expression
 arr_assign_stmt_name: IDENTIFIER
 		{
 			// SYMTAB get name from item 1 in rule
-
+			String name= $1.sval;
+			
 			// SYMTAB get the record from the symbol table
+			SymTabRec rec= symtab.get(name);
+			
 			// SYMTAB if not found (null), semantic error, undeclared
+			if (rec==null)
+			{
+				semerror("Undeclared name" + name + "in current scope");
+			}
+			else if (!rec.isArr())
+			{
+				semerror("Name " + name + "is not an array variable in current scope");
+			}
 			
 			// SYMTAB else if it isn't an array variable, semantic error
+			else
+			{
+			}
+			
 			
 			// CODEGEN else ok, generate load array address
 		}
@@ -380,13 +415,28 @@ print_stmt_start: PRINT
 input_stmt:	IDENTIFIER ASSIGN INPUT LPAREN RPAREN SEMI
 		{
 			// SYMTAB get name from item 1 of grammar rule
-
+			String name=$1.sval;
+			
 			// SYMTAB get the record from the symbol table
+			SymTabRec rec= symtab.get(name);
+			
 			// SYMTAB if not found (null), semantic error, undeclared
+			if(rec==null)
+			{
+				semerror("Undeclared name"+ name+ "in current scope");
+			}
 			
 			// SYMTAB else if it isn't a regular variable, semantic error
+			else if (!rec.isVar())
+			{
+				semerror("Name " +name + " is not a variable in current scope");
+			}
 			
 			// CODEGEN else ok, set "usesRead" to true, generate read
+			else
+			{
+			}
+		
 		}
 	;
 
@@ -436,15 +486,31 @@ factor:		LPAREN expression RPAREN
 		|	IDENTIFIER 
 		{
 			// SYMTAB get name from item 1 of rule
-
+			String name = $1.sval;
+			
 			// SYMTAB get the record from the symbol table
+			SymTabRec rec= symtab.get(name);
+			
 			// SYMTAB if not found (null), semantic error, undeclared
+			if (rec==null)
+			{
+				semerror("Undeclared name "+ name + " in current scope");
+			}
 			
 			// SYMTAB else if it isn't a regular variable or an array variable, semantic error, undeclared
-
+			else if (!rec.isVar() && !rec.isArr())
+			{
+				semerror("Name "+name + "is not a variable or array in the current scope");
+			}	
+			
+			else
+			{	
 			// CODEGEN else if it IS a regular variable, generate load var
 
 			// CODEGEN else (it's an array variable), generate load array address
+			
+			}
+		
 		}
 		| 	arr_factor
 		| 	call 
@@ -463,26 +529,58 @@ arr_factor: arr_factor_name LBRACK expression RBRACK
 arr_factor_name: IDENTIFIER
 		{
 			// SYMTAB get name from item 1 of rule
-
+			String name= $1.sval;
+			
 			// SYMTAB get the record from the symbol table
+			SymTabRec rec = symtab.get(name);
+			
 			// SYMTAB if not found (null), semantic error, undeclared
+			if (rec==null)
+			{
+				semerror("Undeclared name " +  name + " in current scope");
+			}
 			
 			// SYMTAB else if it isn't an array variable, semantic error
+			else if(!rec.isArr())
+			{
+				semerror("Name " + name + "is not an array in current scope");
+			}
+			
 			
 			// CODEGEN else ok, generate load array address
+			else
+			{
+			}
+		
 		}
 	;
 
 call:		IDENTIFIER LPAREN args RPAREN 
 		{
 			// SYMTAB get name from item 1 of rule
+			String name = $1.sval;
 			
 			// SYMTAB get the record from the symbol table
+			SymTabRec rec= symtab.get(name);
+			
 			// SYMTAB if not found (null), semantic error, undeclared
+			if(rec==null)
+			{
+				semerror ("Undeclared name "+name+ " in current scope");
+			}
+			
 			
 			// SYMTAB else if it isn't a function, semantic error
+			else if (!rec.isFun())
+			{
+				semerror("Name "+ name+ " is not a function in current scope");
+			}
+			
 			
 			// CODEGEN else ok, generate function call
+			else
+			{
+			}
 		}
 	;
 	
