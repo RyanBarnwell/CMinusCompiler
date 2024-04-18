@@ -90,6 +90,9 @@ multicomment ="/*"((\*+[^/*])|([^*]))*\**"*/"
 					  yyparser.yylval = new ParserVal(identifier);
 					  return IDENTIFIER; }
 
+{integer} 			{int value=Integer.parseInt(yytext());
+					yyparser.yylval=new ParserVal(value);
+					return NUMBER;}
 {whitespace}		{/* ignore */}
 {linecomment}		{/* ignore */}
 {multicomment}		{/* ignore */}
