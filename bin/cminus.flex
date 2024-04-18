@@ -1,6 +1,6 @@
 /* cminus.flex - scanner for C-Minus programming language. */
-/* Author: Your Name */
-/* Date: the date */
+/* Author: Ryan Barnwell, William Purcell */
+/* Date: 4/18/24 */
 
 %%
 
