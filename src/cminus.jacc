@@ -35,7 +35,14 @@ import java.util.*;
 program: program_start declaration_list
 		{
 			// CODEGEN if input instruction, generate read code
+			if(usesRead)
+			{
+				GenCode.genReadMethod();
+			}
+			
 			// CODEGEN generate the class constructor
+			GenCode.genClassConstructor();
+			
 			// CODEGEN generate the epilog
 			GenCode.genEpilogue(symtab);
 			
@@ -49,7 +56,7 @@ program: program_start declaration_list
 		}
 	;
 	
-	program_start:
+program_start:
 		{
 			// SYMTAB enter scope
 			symtab.enterScope();
@@ -115,6 +122,16 @@ var_declaration: type_specifier IDENTIFIER SEMI
 			symtab.insert(name, rec);
 			
 			// CODEGEN and also generate static variable declaration of scope is global (0)
+			if (symtab.getScope() ==0)
+			{
+				GenCode.genStaticDel(rec);
+			}
+			
+			else
+			{
+				GenCode.genArrInit(rec);
+			}
+			
 			// CODEGEN or if not global, generate array init for local variable
 			
 			}
@@ -402,6 +419,7 @@ var_assign_stmt: IDENTIFIER ASSIGN expression SEMI
 arr_assign_stmt: arr_assign_stmt_name LBRACK expression RBRACK ASSIGN expression SEMI
 		{
 			// CODEGEN generate IA store
+			GenCode.genIAStore();
 		}
 	;
 	
@@ -424,12 +442,13 @@ arr_assign_stmt_name: IDENTIFIER
 			}
 			
 			// SYMTAB else if it isn't an array variable, semantic error
+			// CODEGEN else ok, generate load array address
 			else
 			{
+				GenCode.genLoadArrAddr(rec);
 			}
 			
 			
-			// CODEGEN else ok, generate load array address
 		}
 	;
 
@@ -439,6 +458,8 @@ selection_stmt: IF LPAREN expression RPAREN go_to_else statement go_to_end_else 
 			String label = lastSelectionLabels.pop();
 			
 			// CODEGEN generate label
+			GenCode.genLabel(label);
+			
 		}
 	;
 	
@@ -449,6 +470,7 @@ go_to_else: /* empty */
 			firstSelectionLabels.push(label);
 			
 			// CODEGEN generate fgoto label
+			GenCode.genFGoto(label);
 		}
 	;
 
@@ -459,11 +481,14 @@ go_to_end_else: /* empty */
 			lastSelectionLabels.push(label);
 			
 			// CODGEN generate goto label
+			GenCode.genGoto(label);
+			
 			
 			// Get the else part label and write before else part
 			label = firstSelectionLabels.pop();
 			
 			// CODEGEN generate label
+			GenCode.genLabel(label);
 		}
 	;
 
@@ -473,11 +498,13 @@ iteration_stmt:	WHILE top_label LPAREN expression RPAREN goto_end statement
 			String label = firstIterationLabels.pop();
 			
 			// CODEGEN generate goto label
-		
+			GenCode.genGoto(label);
+			
 			// Get the end label and write at end of while statement
 			label = lastIterationLabels.pop();
 			
 			// CODEGEN generate label
+			GenCode.genLabel(label);
 		}
 	;
 	
@@ -488,6 +515,7 @@ top_label:
 			firstIterationLabels.push(label);
 			
 			// CODEGEN generate label
+			GenCode.genLabel(label);
 		}
 	;
 
@@ -498,6 +526,7 @@ goto_end:
 			lastIterationLabels.push(label);
 			
 			// CODEGEN generate fgoto label
+			GenCode.genFGoto(label);
 		}
 	;
 
@@ -548,18 +577,22 @@ input_stmt:	IDENTIFIER ASSIGN INPUT LPAREN RPAREN SEMI
 return_stmt:	RETURN SEMI
 		{
 			// CODEGEN generate return
+			GenCode.genReturn();
 		} 
 		|		RETURN expression SEMI
 		{
 			// CODEGEN generate I return
+			GenCode.genIReturn();
 		}
 	;
 
 expression:	additive_expression relop additive_expression
 		{
 			// CODEGEN get value of relational op from item 2 of rule
-
+			int relopval = $2.ival;
+			
 			// CODEGEN generate relational oper
+			GenCode.genRelOper(relopval);
 		}
 		|	additive_expression
 	;
@@ -570,6 +603,9 @@ relop:  LTE {$$ = $1;} | LT {$$=$1;} | GT {$$=$1;} | GTE {$$=$1;} | EQ {$$=$1;} 
 additive_expression: additive_expression addop term
 		{
 			// CODEGEN generate arithmetic oper
+			int addopval=$2.ival;
+			GenCode.genArithOper(addopval);
+			
 		}
 		|	term
 	;
@@ -580,6 +616,8 @@ addop:	ADDOP {$$=$1;} | SUBOP {$$=$1;}
 term:	term mulop factor 
 		{
 			// CODEGEN generate aritmetic oper
+			int mulopval=$2.ival;
+			GenCode.genArithOper(mulopval);
 		}
 		| factor
 	;
@@ -615,7 +653,7 @@ factor:		LPAREN expression RPAREN
 			}
 			else{
 				// CODEGEN else (it's an array variable), generate load array address
-				
+			  GenCode.genLoadArrAddr(rec);	
 			}
 		
 		}
@@ -624,12 +662,16 @@ factor:		LPAREN expression RPAREN
 		| 	NUMBER
 		{
 			// CODEGEN generate load constant
+			int value= $1.ival;
+			GenCode.genLoadConst(value);
 		}
 	;
 
 arr_factor: arr_factor_name LBRACK expression RBRACK 
 		{
 			// CODEGEN generate IA load
+			GenCode.genIALoad();
+			
 		}
 	;
 
@@ -657,6 +699,7 @@ arr_factor_name: IDENTIFIER
 			// CODEGEN else ok, generate load array address
 			else
 			{
+				GenCode.genLoadArrAddr(rec);
 			}
 		
 		}
@@ -687,6 +730,7 @@ call:		IDENTIFIER LPAREN args RPAREN
 			// CODEGEN else ok, generate function call
 			else
 			{
+				GenCode.genFunCall(rec);
 			}
 		}
 	;
