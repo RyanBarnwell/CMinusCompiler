@@ -653,7 +653,7 @@ factor:		LPAREN expression RPAREN
 			}
 			else{
 				// CODEGEN else (it's an array variable), generate load array address
-			GenCode.genLoadArrAddr(rec);	
+			  GenCode.genLoadArrAddr(rec);	
 			}
 		
 		}
