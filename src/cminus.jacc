@@ -16,7 +16,7 @@ import java.util.*;
 %start		program
 
 // Constants for all recognized tokens
-%token INPUT PRINT RETURN WHILE IF ELSE VOID INT
+%token INPUT PRINT RETURN WHILE IF ELSE INT VOID
 %token IDENTIFIER NUMBER
 %token LT GT LTE GTE EQ NOTEQ 
 %token ADDOP SUBOP MULOP DIVOP ASSIGN COMMA SEMI
@@ -37,6 +37,8 @@ program: program_start declaration_list
 			// CODEGEN if input instruction, generate read code
 			// CODEGEN generate the class constructor
 			// CODEGEN generate the epilog
+			GenCode.genEpilogue(symtab);
+			
 			// SYMTAB exit scope
 			symtab.exitScope();
 			// SEMANTIC if no main function, report semantic error 
@@ -52,6 +54,7 @@ program: program_start declaration_list
 			// SYMTAB enter scope
 			symtab.enterScope();
 			// CODEGEN generate prolog
+			GenCode.genPrologue();
 		}
 	;
 
@@ -81,6 +84,9 @@ var_declaration: type_specifier IDENTIFIER SEMI
 				VarRec rec = new VarRec(name, symtab.getScope(), vartype);
 				symtab.insert(name, rec);
 				// CODEGEN and also generate static variable declaration of scope is global (0)
+				if(symtab.getScope() == 0) {
+					GenCode.genStaticDec1(rec);
+				}
 			}
 		}
 		| type_specifier IDENTIFIER LBRACK NUMBER RBRACK SEMI
@@ -105,7 +111,7 @@ var_declaration: type_specifier IDENTIFIER SEMI
 			else
 			{
 			// SYMTAB got here, so ok, create variable record, insert in symbol table
-			VarRec rec = new VarRec(name, symtab.getScope(), vartype);
+			ArrRec rec = new ArrRec(name, symtab.getScope(), vartype, arrlen);
 			symtab.insert(name, rec);
 			
 			// CODEGEN and also generate static variable declaration of scope is global (0)
@@ -125,6 +131,7 @@ fun_declaration: fun_name fun_params compound_stmt
 			firstTime = true; // first time we're generating function end
 			
 			// CODEGEN generate function end
+			GenCode.genFunEnd();
 		}
 	;
 
@@ -213,6 +220,7 @@ fun_params:  LPAREN params RPAREN
 			}
 		
 			// CODEGEN generate function beginning
+			GenCode.genFunBegin(rec);
 		}
 	;
 
@@ -263,7 +271,7 @@ param:		type_specifier IDENTIFIER
 			// SYMTAB get the type and name
 			int	vartype= $1.ival;
 			String name= $2.sval;
-				
+			
 			// SYMTAB create a VarRec
 			VarRec rec= new VarRec(name,symtab.getScope(),vartype);
 
@@ -379,14 +387,14 @@ var_assign_stmt: IDENTIFIER ASSIGN expression SEMI
 			// SYMTAB else if it isn't a regular variable, semantic error
 			else if(!rec.isVar())
 			{
-				semerror("Name " +name+ "is not a variable in current scope");
+				semerror("Name " +name+ " is not a variable in current scope");
 			}
 			
 			
 			// CODEGEN else ok, generate store
 			else
 			{
-			
+				GenCode.genStore(rec);
 			}
 		}
 	;
@@ -412,7 +420,7 @@ arr_assign_stmt_name: IDENTIFIER
 			}
 			else if (!rec.isArr())
 			{
-				semerror("Name " + name + "is not an array variable in current scope");
+				semerror("Name " + name + " is not an array variable in current scope");
 			}
 			
 			// SYMTAB else if it isn't an array variable, semantic error
@@ -496,12 +504,14 @@ goto_end:
 print_stmt:	print_stmt_start LPAREN expression RPAREN SEMI
 		{
 			// CODEGEN generate end print
+			GenCode.genEndPrint();
 		}
 	;
 
 print_stmt_start: PRINT
 		{
 			// CODEGEN generate begin print
+			GenCode.genBeginPrint();
 		}
 	;
 
@@ -528,6 +538,8 @@ input_stmt:	IDENTIFIER ASSIGN INPUT LPAREN RPAREN SEMI
 			// CODEGEN else ok, set "usesRead" to true, generate read
 			else
 			{
+				usesRead = true;
+				GenCode.genRead(rec);
 			}
 		
 		}
@@ -596,12 +608,14 @@ factor:		LPAREN expression RPAREN
 				semerror("Name "+name + "is not a variable or array in the current scope");
 			}	
 			
-			else
+			else if (rec.isVar())
 			{	
 			// CODEGEN else if it IS a regular variable, generate load var
-
-			// CODEGEN else (it's an array variable), generate load array address
-			
+				GenCode.genLoadVar(rec);
+			}
+			else{
+				// CODEGEN else (it's an array variable), generate load array address
+				
 			}
 		
 		}
@@ -636,7 +650,7 @@ arr_factor_name: IDENTIFIER
 			// SYMTAB else if it isn't an array variable, semantic error
 			else if(!rec.isArr())
 			{
-				semerror("Name " + name + "is not an array in current scope");
+				semerror("Name " + name + " is not an array in current scope");
 			}
 			
 			
