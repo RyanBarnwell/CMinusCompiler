@@ -92,7 +92,7 @@ var_declaration: type_specifier IDENTIFIER SEMI
 				symtab.insert(name, rec);
 				// CODEGEN and also generate static variable declaration of scope is global (0)
 				if(symtab.getScope() == 0) {
-					GenCode.genStaticDec1(rec);
+					GenCode.genStaticDecl(rec);
 				}
 			}
 		}
@@ -124,15 +124,16 @@ var_declaration: type_specifier IDENTIFIER SEMI
 			// CODEGEN and also generate static variable declaration of scope is global (0)
 			if (symtab.getScope() ==0)
 			{
-				GenCode.genStaticDel(rec);
+				GenCode.genStaticDecl(rec);
 			}
 			
 			else
 			{
+				// CODEGEN or if not global, generate array init for local variable
 				GenCode.genArrInit(rec);
 			}
 			
-			// CODEGEN or if not global, generate array init for local variable
+			
 			
 			}
 		}
@@ -249,7 +250,7 @@ params:		param_list { $$ = $1; }
 param_list:	param_list COMMA param 
 		{
 			// Get the parameter list from item 1 in grammar rule
-			//@SuppressWarnings("unchecked")
+			@SuppressWarnings("unchecked")
 			// SYMTAB $1 has the object that is a List<SymTabRec>
 			List<SymTabRec> reclist= (List<SymTabRec>) $1.obj;
 			
@@ -603,8 +604,8 @@ relop:  LTE {$$ = $1;} | LT {$$=$1;} | GT {$$=$1;} | GTE {$$=$1;} | EQ {$$=$1;} 
 additive_expression: additive_expression addop term
 		{
 			// CODEGEN generate arithmetic oper
-			int addopval=$2.ival;
-			GenCode.genArithOper(addopval);
+			int addoptype=$2.ival;
+			GenCode.genArithOper(addoptype);
 			
 		}
 		|	term
@@ -616,8 +617,8 @@ addop:	ADDOP {$$=$1;} | SUBOP {$$=$1;}
 term:	term mulop factor 
 		{
 			// CODEGEN generate aritmetic oper
-			int mulopval=$2.ival;
-			GenCode.genArithOper(mulopval);
+			int muloptype=$2.ival;
+			GenCode.genArithOper(muloptype);
 		}
 		| factor
 	;
@@ -653,7 +654,7 @@ factor:		LPAREN expression RPAREN
 			}
 			else{
 				// CODEGEN else (it's an array variable), generate load array address
-			  GenCode.genLoadArrAddr(rec);	
+			GenCode.genLoadArrAddr(rec);	
 			}
 		
 		}
